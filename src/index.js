@@ -3,7 +3,8 @@ import SimpleLightbox from 'simplelightbox';
 import axios from 'axios';
 import { Notify } from 'notiflix';
 
-const inputForm = document.querySelector('#search-form input');
+const inputForm = document.querySelector('#search-form');
+const inputEl = document.querySelector('#search-form input');
 const submitBtn = document.querySelector('#search-form button');
 const imageList = document.querySelector('.gallery');
 const footerEl = document.querySelector('#footer');
@@ -32,11 +33,12 @@ observer.observe(footerEl);
 
 function onReachedBottom(entries) {
   entries.forEach(async entry => {
+    console.log(entries);
     if (entry.isIntersecting && state.init && !state.finish) {
-      const hits = (await loadImages()).hits.length;
+      const hits = (await loadImages()).totalHits;
       state.finish = hits < queryParams.per_page;
-      if (state.finish) {
-        Notify.warning('No more results');
+      if (state.finish && hits != 0) {
+        Notify.warning("We're sorry, but you've reached the end of search results.");
       }
     }
   });
@@ -76,21 +78,28 @@ async function loadImages() {
   return res.data;
 }
 
-submitBtn.addEventListener('click', async function (e) {
+inputForm.addEventListener('submit', async function (e) {
   e.preventDefault();
-
+  state.finish = false;
+  if (inputEl.value.trim() === "") {
+    state.init = false;
+    return Notify.failure("Please enter your request");
+  }
   imageList.innerHTML = '';
   queryParams.page = 0;
-  queryParams.q = inputForm.value;
+  queryParams.q = inputEl.value.trim();
   const hits = (await loadImages()).totalHits;
+  
   if (hits > 0) {
-    Notify.success(`Found ${hits} results`);
+    Notify.success(`Hooray! We found ${hits} images.`);
     state.init = true;
   } else {
-    Notify.failure('No results found');
+    Notify.failure("Sorry, there are no images matching your search query. Please try again.");
+    
   }
+  console.log(state);
 });
 
-inputForm.addEventListener('input', function (event) {
-  submitBtn.disabled = inputForm.value == '';
-});
+// inputEl.addEventListener('input', function (event) {
+//   submitBtn.disabled = inputEl.value == '';
+// });
